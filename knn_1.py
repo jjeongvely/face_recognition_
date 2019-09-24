@@ -116,7 +116,7 @@ def predict(rgb_small_frame, knn_clf=None, model_path=None, distance_threshold=0
     """
     Recognizes faces in given image using a trained KNN classifier
 
-    :param X_img_path: path to image to be recognized
+    :param rgb_small_frame
     :param knn_clf: (optional) a knn classifier object. if not specified, model_save_path must be specified.
     :param model_path: (optional) path to a pickled knn classifier. if not specified, model_save_path must be knn_clf.
     :param distance_threshold: (optional) distance threshold for face classification. the larger it is, the more chance
@@ -124,8 +124,6 @@ def predict(rgb_small_frame, knn_clf=None, model_path=None, distance_threshold=0
     :return: a list of names and face locations for the recognized faces in the image: [(name, bounding box), ...].
         For faces of unrecognized persons, the name 'unknown' will be returned.
     """
-    #if not os.path.isfile(X_img_path) or os.path.splitext(X_img_path)[1][1:] not in ALLOWED_EXTENSIONS:
-    #    raise Exception("Invalid image path: {}".format(X_img_path))
 
     if knn_clf is None and model_path is None:
         raise Exception("Must supply knn classifier either thourgh knn_clf or model_path")
@@ -135,9 +133,8 @@ def predict(rgb_small_frame, knn_clf=None, model_path=None, distance_threshold=0
         with open(model_path, 'rb') as f:
             knn_clf = pickle.load(f)
 
-    # Load image file and find face locations
-    #X_img = face_recognition.load_image_file(X_img_path)
-    X_face_locations = face_recognition.face_locations(rgb_small_frame, model="cnn")
+    # Find face locations
+    X_face_locations = face_recognition.face_locations(rgb_small_frame)
 
     # If no faces are found in the image, return an empty result.
     if len(X_face_locations) == 0:
@@ -158,18 +155,18 @@ def show_prediction_labels_on_image(frame, predictions):
     """
     Shows the face recognition results visually.
 
-    :param frame: path to image to be recognized
+    :param frame
     :param predictions: results of the predict function
     :return:
     """
 
     for name, (top, right, bottom, left) in predictions:
+        # Scale back up face locations since the frame we detected in was scaled to 1/4 size
         top *= 4
         right *= 4
         bottom *= 4
         left *= 4
 
-        #print("Top: {}, Left: {}, Bottom: {}, Right: {}".format(top, left, bottom, right))
         # Draw a box around the face
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
@@ -209,23 +206,9 @@ if __name__ == "__main__":
 
         # Only process every other frame of video to save time
         if process_this_frame:
-            # Find all the faces and face encodings in the current frame of video
-
-            #image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            #image = Image.fromarray(image)
-            #image_file = "find_face.jpg"
-            #full_file_path = os.path.join("knn_examples/test", image_file)
-            #image.save(full_file_path)
-
-            #print("Looking for faces in {}".format(image_file))
-
-            # Find all people in the image using a trained classifier model
+            # Find all the faces and face encodings in the current frame of video using a trained classifier model
             # Note: You can pass in either a classifier file name or a classifier model instance
             predictions = predict(rgb_small_frame, model_path="trained_knn_model.clf")
-
-            # Print results on the console
-            #for name, (top, right, bottom, left) in predictions:
-            #   print("- Found {} at ({}, {})".format(name, left, top))
 
             # Display results overlaid on an image
             show_prediction_labels_on_image(frame, predictions)
